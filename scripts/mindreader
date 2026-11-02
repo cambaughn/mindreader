@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Launcher: scripts/mindreader [app|doctor|train|eval|dictate] ...
+DIR="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
+PY="$DIR/third_party/silent-dictation/.venv/bin/python"
+if [[ ! -x "$PY" ]]; then
+  echo "Run $DIR/scripts/bootstrap.sh first." >&2
+  exit 1
+fi
+cd "$DIR"
+exec "$PY" -m mindreader "$@"

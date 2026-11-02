@@ -1,0 +1,6 @@
+# Mindreader runs inside the engine's environment: third_party/silent-dictation/.venv
+# (created by scripts/bootstrap.sh, which runs the engine's setup.sh with uv and Python 3.12).
+# The engine pins torch, mediapipe, opencv, sentencepiece and pyobjc in its own requirements.txt.
+# These are the extras Mindreader adds on top:
+PySide6==6.11.1
+pytest==9.1.1

@@ -1,0 +1,3 @@
+[submodule "third_party/silent-dictation"]
+	path = third_party/silent-dictation
+	url = https://github.com/KeWang0622/silent-dictation.git
