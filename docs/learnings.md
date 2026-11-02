@@ -6,7 +6,8 @@ Can the MacBook's camera read words I only mouth, well enough to type them for m
 
 ## Answer
 
-_Pending._
+_Pending a measured number._ First evidence (2026-11-01): yes, at least sometimes. The
+unadapted FLARE model read a silently mouthed sentence word-for-word from the FaceTime camera.
 
 ## Log
 
@@ -41,3 +42,17 @@ _Pending._
   the AVFoundation completion handler; PyObjC aborts the process ("expecting void return value") the
   moment the camera prompt resolves. The engine's own app avoids the path by asking asynchronously.
   Mindreader carries its own void-returning copy in `mindreader/ui/app.py`.
+
+### 2026-11-01 — First live decode (base model, no adaptation)
+
+- FaceTime HD camera at 30 fps, face tracked, mouth centre locked. Decode tab, hold Space.
+- **The sentence was mouthed silently, no voice.** So the first silent-speech result is a clean hit
+  from the public model, before any personal training. The question is no longer "is there signal"
+  but "how consistent is it across sentences, and how much does adaptation add".
+- "This is an experiment to transcribe my voice." came back exactly right, top candidate at -0.09
+  vs -0.49 for the runner-up. The rest of the n-best were lip-confusions (transcribe/describe, my/by,
+  an/a), which is what real lip-reading looks like, not a language prior guessing.
+- Earlier takes with a name in them fell apart ("my name is amir amir amir…", "kinbury I'm a kinf"):
+  proper nouns are out of the model's vocabulary. Expect fine-tuning to help pronunciation habits,
+  not names; a custom prompts file with the user's own names is the lever there.
+- Timing on the M2: vsr 1.37 s, crop 0.02 s for a 118-frame (~4 s) take. Usable for dictation.
