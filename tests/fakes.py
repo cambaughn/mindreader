@@ -69,6 +69,7 @@ class Recognizer:
 class RawWriter:
     def __init__(self):
         self.written: list[str] = []
+        self.folder, self.enabled = "/raw", True
 
     def write(self, frames, item_id):
         self.written.append(item_id)

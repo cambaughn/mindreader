@@ -58,6 +58,15 @@ class DatasetStore:
         delete_item(item_id)
 
 
+def raw_path(item) -> Path | None:
+    """Full-frame mp4 of a recorded take, if it was kept (meta.raw names the folder, the file is <id>.mp4)."""
+    folder = (getattr(item, "meta", None) or {}).get("raw")
+    if not folder:
+        return None
+    p = Path(folder) / f"{item.id}.mp4"
+    return p if p.exists() else None
+
+
 class RawVideoWriter:
     """Keeps the full (640 px wide) camera frames of a take as mp4, so a future model with a
     different crop can reuse every recording. Off by default in tests; on by default in the app."""
@@ -138,10 +147,10 @@ class RecordSession:
             span = frames[-1].ts - frames[0].ts
             meta = {"condition": self.condition, "take": self.take, "camera": self.camera,
                     "seconds": round(span, 3), "fps": round((len(frames) - 1) / span, 2) if span > 0 else None,
-                    "raw": None}
+                    "raw": str(self.raw.folder) if self.raw and self.raw.enabled else None}
             item_id = self.store.add(clip, prompt, meta)
-            raw_path = self.raw.write(frames, item_id) if self.raw else None
-            meta["raw"] = str(raw_path) if raw_path else None
+            if self.raw:
+                self.raw.write(frames, item_id)
             self.saved.append((item_id, self.idx))
             self.idx += 1
             self.status, self.message = "saved", "Saved"

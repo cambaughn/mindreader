@@ -33,7 +33,7 @@ def test_take_is_saved_with_condition_meta_and_raw_video():
     assert text == "the quick brown fox"
     assert meta["condition"] == "silent" and meta["take"] == 2 and meta["camera"] == "FaceTime"
     assert meta["seconds"] == pytest.approx(59 / 30, abs=0.01) and meta["fps"] == pytest.approx(30, abs=0.5)
-    assert raw.written == ["item1"]
+    assert raw.written == ["item1"] and meta["raw"] == "/raw"
     assert snap["prompt"] == "Jumps over." and snap["next"] is None
 
 
