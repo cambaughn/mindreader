@@ -6,10 +6,11 @@ Can the MacBook's camera read words I only mouth, well enough to type them for m
 
 ## Answer
 
-_Measured once, before adaptation (2026-11-01):_ sometimes, not reliably. The unadapted FLARE
-model gets 72% word error rate on 21 silently mouthed sentences (chance: 102%), with 1 sentence
-word-perfect and most of the rest unusable. The signal is there; whether personal fine-tuning
-turns it into dictation is the open question.
+_As of 2026-11-02:_ not out of the box, and the reason is silent mouthing itself. The public FLARE
+model reads the same 20 sentences at 25% word error rate when I say them aloud and 72% when I only
+mouth them, from the same camera on the same evening. Fine-tuning on 17 silent sentences brought
+silent held-out error from 94% to 72% and showed the model can learn the silent dialect; the open
+question is now how many sentences it takes.
 
 ## Log
 
@@ -139,3 +140,27 @@ turns it into dictation is the open question.
 - LLM rescoring hurt this time (71.9% → 78.1%) where it helped the weaker model. With 4 sentences
   that is one or two words either way; not a conclusion yet.
 - Mindreader's defaults now follow this: light at lr 3e-4 for 30 epochs unless overridden.
+
+### 2026-11-02 — Voiced vs silent: the gap is the mouthing, not the pipeline
+
+- Same 20 sentences, condition voiced, recorded ~1 h after the silent set. 16 train / 4 held-out.
+- Base FLARE, no LLM:
+
+  | condition | n  | WER all | WER held-out | exact | chance |
+  |-----------|----|---------|--------------|-------|--------|
+  | voiced    | 20 | 25.5%   | 21.9%        | 4/20  | 99%    |
+  | silent    | 21 | 72.2%   | 93.8%        | 1/21  | 102%   |
+
+  Voiced 25.5% sits right where the engine's author measured it (32.7% on VidTIMIT), so camera,
+  lighting, cropping and timing are fine. The 47-point gap is what silent mouthing costs a model
+  that only ever saw people speaking.
+- Per sentence, voiced beats silent on 19 of 20. The one exception ("I am running a little late
+  today" → "I'm wearing legal entity" voiced) is a reminder that 4-second clips are noisy.
+- Voiced errors are the familiar lip-reading confusions (build/bill, parked/mark, punch/bunch,
+  share/sell): the model is close and a language model can fix them. Silent errors are whole-phrase
+  misses, which a language model cannot.
+- The silent-trained personal model on voiced takes: 24.2% all / 31.2% held-out, so adapting to
+  silent did not break voiced reading (one or two words on 4 sentences either way).
+- This answers open question 1. Silent mouthing is a different visual dialect, and the project's
+  job is to teach it. The lever is silent data volume; the next recording session should be silent
+  only and as large as patience allows.
