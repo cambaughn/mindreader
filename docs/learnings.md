@@ -112,3 +112,10 @@ turns it into dictation is the open question.
   the training set at all; (2) the same 20 sentences voiced, to separate "silent mouthing is hard"
   from "my recording pipeline is off" (the engine's author saw 32.7% WER voiced); (3) more silent
   takes: the engine's own guidance is 60, and 17 is well under its stated minimum of 20.
+- Checked the dropped-opening-words theory against the raw video (8 takes, MediaPipe over the full
+  frames): face tracked 100% of frames, lips closed at frame 0, first lip movement 0.43–0.87 s into
+  the recording, last movement 0.1–0.6 s before the end, activity trim keeps a margin either side.
+  The capture is not clipping onsets. The missing first words are the model's confusion, not ours.
+- Bug found and fixed on the way: `meta.raw` was null in every manifest row because the raw path
+  was filled in after the item was saved. It now records the raw folder (file is `<id>.mp4`);
+  `recorder.raw_path(item)` resolves it. The 21 existing rows were backfilled.
