@@ -82,3 +82,33 @@ turns it into dictation is the open question.
   has a separate face stream (96×96 face crop, stored with every take), so the fine-tune can use it.
   Expression tied to meaning will not transfer to unseen sentences; expression tied to sounds might.
   The held-out WER after training is the test.
+
+### 2026-11-02 — First personal fine-tune (silent only, 17 train / 4 held-out)
+
+- `mindreader train --condition silent --strategy both` on the M2, app closed. 84 minutes wall clock.
+  Light epochs took 36–58 s each. Full epochs ranged 70 s to 23 min with 19 min of system time
+  over the run: the full fine-tune was swapping on 24 GB. Light is the only practical strategy here
+  unless the frame budget comes down.
+- Result on the 4 held-out sentences (32 words):
+
+  | model                    | held-out WER |
+  |--------------------------|--------------|
+  | base                     | 93.8%        |
+  | personal (light won)     | 90.6%        |
+  | personal + LLM rescoring | 78.1%        |
+
+  One word out of 32. Noise.
+- The telling number is the training set: base 66.9% → personal 60.0% WER on the 17 sentences it
+  trained on. Loss only fell 2.3 → 1.8 across 20 epochs. The model did not fit its own training data,
+  so this is underfitting, not a generalisation failure. The light strategy (front-end, norms,
+  biases, lr 1e-4) at 17 sentences × 10 epochs is too little signal to move a model this size.
+- LLM rescoring was worth more than the fine-tune (90.6 → 78.1 on held-out). For silent input the
+  n-best is full of near-misses, and a language prior picks among them better than the decoder's
+  own scores do.
+- Unchanged error shape after training: opening words still vanish ("let's grab lunch on friday" →
+  "describe ninja frank"; "can you share the link" → "there's nothing"). Needs a look at the raw video
+  to see whether mouthing starts before Space is pressed or the activity trim is eating the onset.
+- Next experiments, cheapest first: (1) light at lr 3e-4 for 30 epochs, to see if the model can fit
+  the training set at all; (2) the same 20 sentences voiced, to separate "silent mouthing is hard"
+  from "my recording pipeline is off" (the engine's author saw 32.7% WER voiced); (3) more silent
+  takes: the engine's own guidance is 60, and 17 is well under its stated minimum of 20.
