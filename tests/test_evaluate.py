@@ -53,3 +53,15 @@ def test_train_filters_items_by_condition(monkeypatch):
     assert T.load_items is original  # restored
     E.train(log=lambda *_: None)
     assert seen["all"] == ["1", "2", "3"]
+
+
+def test_train_defaults_to_the_stronger_light_settings(monkeypatch):
+    from silentdict import train as T
+    from mindreader import evaluate as E
+    seen = {}
+    monkeypatch.setattr(T, "run", lambda log=print, progress=None, **kw: seen.update(kw) or {})
+    E.train()
+    assert seen["strategies"] == ("light",) and seen["lr"] == E.LIGHT_LR and seen["epochs"] == E.LIGHT_EPOCHS
+    seen.clear()
+    E.train(strategies=("light", "full"), epochs=5)
+    assert seen["strategies"] == ("light", "full") and seen["epochs"] == 5 and "lr" not in seen

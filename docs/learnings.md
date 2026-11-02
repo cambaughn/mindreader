@@ -119,3 +119,23 @@ turns it into dictation is the open question.
 - Bug found and fixed on the way: `meta.raw` was null in every manifest row because the raw path
   was filled in after the item was saved. It now records the raw folder (file is `<id>.mp4`);
   `recorder.raw_path(item)` resolves it. The 21 existing rows were backfilled.
+
+### 2026-11-02 — Second fine-tune: same data, 3× learning rate, 30 epochs
+
+- `light`, lr 3e-4, 30 epochs, silent only, app closed. 21 minutes on the M2, 31–62 s per epoch,
+  no swapping. Loss 2.32 → 1.25; best held-out epoch was 14–16.
+
+  | model                               | train WER (17) | held-out WER (4) | exact (of 21) |
+  |-------------------------------------|----------------|------------------|---------------|
+  | base                                | 66.9%          | 93.8%            | 1             |
+  | personal, engine defaults (1e-4×10) | 60.0%          | 90.6%            | 1             |
+  | personal, 3e-4 × 30                 | 3.1%           | 71.9%            | 14            |
+
+- The mechanism works once it is pushed: it memorised the training sentences and moved held-out by
+  22 points. The remaining gap is data, not optimisation. Next lever is more silent sentences.
+- Confound: all 4 held-out takes are Harvard sentences (every 5th take landed on one), the hardest
+  kind, while training is mostly everyday dictation. Held-out 71.9% is pessimistic for real use.
+  More takes will dilute this; stratifying the split would fix it properly.
+- LLM rescoring hurt this time (71.9% → 78.1%) where it helped the weaker model. With 4 sentences
+  that is one or two words either way; not a conclusion yet.
+- Mindreader's defaults now follow this: light at lr 3e-4 for 30 epochs unless overridden.

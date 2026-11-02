@@ -23,8 +23,9 @@ def cmd_doctor(args):
 def cmd_train(args):
     from .evaluate import train
     strategies = ("light", "full") if args.strategy == "both" else (args.strategy,)
-    train(condition=args.condition, epochs=args.epochs, strategies=strategies, model=args.model,
-          min_items=args.min_items, device=args.device)
+    extra = {k: v for k, v in (("epochs", args.epochs), ("lr", args.lr)) if v is not None}
+    train(condition=args.condition, strategies=strategies, model=args.model,
+          min_items=args.min_items, device=args.device, **extra)
     return 0
 
 
@@ -71,8 +72,10 @@ def main(argv=None) -> int:
     t = sub.add_parser("train", help="fine-tune the personal model on your takes")
     t.add_argument("--condition", choices=["silent", "whisper", "voiced"], default=None,
                    help="train/evaluate on one condition only (default: all takes)")
-    t.add_argument("--strategy", choices=["light", "full", "both"], default="both")
+    t.add_argument("--strategy", choices=["light", "full", "both"], default="light",
+                   help="light (default): front-end, norms and biases at lr 3e-4 for 30 epochs; full swaps on 24 GB")
     t.add_argument("--epochs", type=int, default=None)
+    t.add_argument("--lr", type=float, default=None)
     t.add_argument("--model", choices=["auto", "flare", "auto_avsr"], default="auto")
     t.add_argument("--min-items", type=int, default=20)
     t.add_argument("--device", default="auto")

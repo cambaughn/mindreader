@@ -289,7 +289,7 @@ class Main(QMainWindow):
         row.addWidget(self.train_cond)
         row.addWidget(QLabel("Strategy:"))
         self.strategy = QComboBox()
-        self.strategy.addItems(["both", "light", "full"])
+        self.strategy.addItems(["light", "both", "full"])
         row.addWidget(self.strategy)
         self.train_btn = QPushButton("Train personal model")
         self.train_btn.clicked.connect(self._train)

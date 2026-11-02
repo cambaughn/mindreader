@@ -133,11 +133,20 @@ def evaluate(device: str = "auto", model: str | None = None, log=print, use_llm:
     return report
 
 
-def train(condition: str | None = None, log=print, progress=None, **kwargs) -> dict:
+LIGHT_LR, LIGHT_EPOCHS = 3e-4, 30   # the engine's 1e-4 x 10 did not fit 17 silent takes; this did (learnings 2026-11-02)
+
+
+def train(condition: str | None = None, log=print, progress=None, strategies=("light",), **kwargs) -> dict:
     """The engine's personal fine-tune (`silentdict.train.run`), optionally restricted to takes of one
     condition (e.g. only your silent takes). Held-out clips are filtered the same way, so the reported
-    WER is for that condition."""
+    WER is for that condition. Defaults to the light strategy with the stronger settings that worked
+    on this Mac; `full` swaps on 24 GB."""
     from silentdict import train as T
+
+    if tuple(strategies) == ("light",):
+        kwargs.setdefault("lr", LIGHT_LR)
+        kwargs.setdefault("epochs", LIGHT_EPOCHS)
+    kwargs["strategies"] = tuple(strategies)
 
     original = T.load_items
     if condition:
