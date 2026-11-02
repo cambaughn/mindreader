@@ -240,6 +240,9 @@ class Main(QMainWindow):
         v.addLayout(row)
         self.progress_label = QLabel("No session. Pick a condition and press Start.")
         v.addWidget(self.progress_label)
+        self.now_label = QLabel("")
+        self.now_label.setStyleSheet("color:#888;")
+        v.addWidget(self.now_label)
         self.prompt_label = QLabel("")
         self.prompt_label.setWordWrap(True)
         self.prompt_label.setFont(QFont("Helvetica", 24))
@@ -250,7 +253,8 @@ class Main(QMainWindow):
         v.addWidget(self.next_label)
         self.rec_status = QLabel("")
         v.addWidget(self.rec_status)
-        box = QGroupBox("Read-back with the current model")
+        box = QGroupBox("Read-back of the last take")
+        self.readback_box = box
         bv = QVBoxLayout(box)
         self.readback = QLabel("")
         self.readback.setWordWrap(True)
@@ -508,6 +512,7 @@ class Main(QMainWindow):
         self.condition.setEnabled(True)
         self.progress_label.setText("Session stopped.")
         self.prompt_label.setText("")
+        self.now_label.setText("")
         self.next_label.setText("")
         self._refresh_counts()
 
@@ -520,17 +525,22 @@ class Main(QMainWindow):
     def _show_recorded(self, snap: dict):
         self.progress_label.setText(f"{snap['condition']}  ·  {snap['idx']} / {snap['total']}  ·  saved {snap['saved']}")
         self.prompt_label.setText(snap["prompt"] or "Session complete. Train when you have 20+ takes.")
+        self.now_label.setText("Now hold SPACE and mouth:" if snap["prompt"] else "")
         self.next_label.setText(f"next: {snap['next']}" if snap["next"] else "")
         color = {"saved": "#3fb950", "retry": "#f85149", "saving": "#d29922"}.get(snap["status"], "#888")
         self.rec_status.setText(f'<span style="color:{color}">{snap["status"]}</span>  {snap["message"]}')
         last = snap.get("last")
         if last:
+            self.readback_box.setTitle(f'Read-back of the last take  ·  "{last["prompt"]}"')
             self.readback.setText(align_html(last["align"]) if last["align"] else last["read"])
+        else:
+            self.readback_box.setTitle("Read-back of the last take")
+            self.readback.setText("")
         acc = snap.get("accuracy")
         self.rec_acc.setText(f"session word accuracy with current model: {acc:.0%}" if acc is not None else "")
         if snap["status"] == "saved":
             self._refresh_counts()
-            self.sig.status.emit("Saved. Next sentence.")
+            self.sig.status.emit("Saved. Hold Space for the next sentence.")
         if snap["done"]:
             self.sig.status.emit("Session complete.")
 
