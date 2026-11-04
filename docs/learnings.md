@@ -257,3 +257,15 @@ question is now how many sentences it takes.
   FLARE from Hugging Face at 48 MB/s, so weights should never leave the Mac. The pod's Python also
   needs `pip --break-system-packages`. scripts/remote now reflects the first two; the relay is
   the thing to switch to next.
+
+### 2026-11-03 — Live use with the 113-take model
+
+- Casual use at the Decode tab: "pretty hit or miss still". Sentences land word-perfect one moment
+  and fall apart the next. "Bigger mouthing is better": exaggerated, clearer lip shapes decode
+  noticeably more often.
+- So the held-out 87% on everyday sentences is real but was measured on prompted takes (reading a
+  sentence at a steady pace, face centred), a kinder setting than muttering a thought at the
+  screen. The next dataset should deliberately include lazy, fast and casual mouthing, and the eval
+  should score a batch of unprompted live decodes, not only held-out takes.
+- Status: experiment closed here. Repo public, report in docs/report.md, thread draft in
+  docs/thread.md.
