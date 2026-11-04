@@ -6,6 +6,7 @@ and widgets. Run from the macOS Terminal app so the camera permission attaches t
 """
 from __future__ import annotations
 
+import os
 import queue
 import subprocess
 import threading
@@ -16,16 +17,17 @@ from .. import engine  # noqa: F401  (before silentdict imports)
 from .. import __version__
 from ..recorder import (CONDITIONS, DatasetStore, RawVideoWriter, RecordSession, counts,
                         prompts_for_condition)
+from . import theme
+from .theme import OP_COLORS, P, ActivityMeter, repolish
 
 import numpy as np
 from PySide6.QtCore import QObject, QEvent, Qt, QTimer, Signal
-from PySide6.QtGui import QColor, QImage, QPainter, QPen, QPixmap, QFont
-from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QFrame, QGroupBox, QHBoxLayout, QLabel,
+from PySide6.QtGui import QColor, QImage, QPainter, QPen, QPixmap
+from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QFrame, QHBoxLayout, QLabel,
                                QListWidget, QMainWindow, QPlainTextEdit, QProgressBar, QPushButton, QSpinBox,
                                QTabWidget, QVBoxLayout, QWidget, QLineEdit)
 
 PREVIEW_W = 480
-OP_COLORS = {"ok": "#3fb950", "sub": "#d29922", "del": "#f85149", "ins": "#8b949e"}
 
 
 class Signals(QObject):
@@ -46,11 +48,11 @@ def bgr_to_pixmap(bgr: np.ndarray, obs, width: int = PREVIEW_W) -> QPixmap:
     pm = QPixmap.fromImage(img)
     if obs is not None:
         p = QPainter(pm)
-        p.setPen(QPen(QColor("#3fb950"), 2))
+        p.setPen(QPen(QColor(P["accent"]), 2))
         x0, y0, x1, y1 = obs.bbox
         p.drawRect(x0, y0, x1 - x0, y1 - y0)
         mx, my = obs.points[3]
-        p.setPen(QPen(QColor("#58a6ff"), 2))
+        p.setPen(QPen(QColor(P["rec"]), 2))
         p.drawEllipse(int(mx) - 4, int(my) - 4, 8, 8)
         p.end()
     return pm.scaledToWidth(width, Qt.TransformationMode.SmoothTransformation)
@@ -99,7 +101,8 @@ def ensure_camera_access(timeout: float = 120.0) -> bool:
 class Main(QMainWindow):
     def __init__(self, camera: str = "0"):
         super().__init__()
-        self.setWindowTitle(f"Mindreader {__version__}")
+        self.setWindowTitle("Mindreader")
+        self._capture_state = None
         self.sig = Signals()
         self.camera = None
         self.camera_name = ""
@@ -134,29 +137,45 @@ class Main(QMainWindow):
         root = QWidget()
         self.setCentralWidget(root)
         outer = QVBoxLayout(root)
+        outer.setContentsMargins(16, 12, 16, 10)
+        outer.setSpacing(10)
 
+        head = QHBoxLayout()
+        outer.addLayout(head)
+        title = QLabel("Mindreader")
+        title.setStyleSheet("font-size:15px; font-weight:600; letter-spacing:0.5px;")
+        head.addWidget(title)
+        ver = QLabel(__version__)
+        ver.setProperty("role", "muted")
+        head.addWidget(ver)
+        head.addSpacing(12)
         self.checks_row = QHBoxLayout()
-        outer.addLayout(self.checks_row)
+        self.checks_row.setSpacing(6)
+        head.addLayout(self.checks_row, 1)
 
         body = QHBoxLayout()
+        body.setSpacing(18)
         outer.addLayout(body, 1)
 
         left = QVBoxLayout()
+        left.setSpacing(10)
         body.addLayout(left)
         self.preview = QLabel("camera…")
+        self.preview.setObjectName("preview")
         self.preview.setFixedSize(PREVIEW_W, int(PREVIEW_W * 9 / 16))
-        self.preview.setStyleSheet("background:#000; color:#888;")
         self.preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
         left.addWidget(self.preview)
-        self.bars = QLabel()
-        self.bars.setFixedHeight(28)
-        left.addWidget(self.bars)
+        meter_row = QHBoxLayout()
+        self.bars = ActivityMeter()
+        self.bars.setFixedWidth(7 * 14 + 6 * 5)
+        meter_row.addWidget(self.bars)
         self.cam_info = QLabel("")
-        self.cam_info.setStyleSheet("color:#888;")
-        left.addWidget(self.cam_info)
+        self.cam_info.setProperty("role", "muted")
+        meter_row.addWidget(self.cam_info, 1)
+        left.addLayout(meter_row)
         self.space_label = QLabel("Hold  SPACE  to capture")
+        self.space_label.setObjectName("capture")
         self.space_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.space_label.setStyleSheet("font-size:16px; padding:8px; border:1px solid #444; border-radius:6px;")
         left.addWidget(self.space_label)
         left.addStretch(1)
 
@@ -169,6 +188,7 @@ class Main(QMainWindow):
         bottom = QHBoxLayout()
         outer.addLayout(bottom)
         self.status_bar = QLabel("starting…")
+        self.status_bar.setProperty("role", "muted")
         bottom.addWidget(self.status_bar, 1)
         b = QPushButton("Open data folder")
         b.clicked.connect(lambda: subprocess.Popen(["open", str(engine.DATA)]))
@@ -197,23 +217,29 @@ class Main(QMainWindow):
         row.addWidget(self.rewrite_box)
         row.addStretch(1)
         v.addLayout(row)
+        card = QFrame()
+        card.setProperty("role", "card")
+        cv = QVBoxLayout(card)
+        cv.setContentsMargins(18, 16, 18, 14)
+        cv.setSpacing(8)
         self.decoded_text = QLabel("Hold Space, mouth a sentence, release.")
+        self.decoded_text.setProperty("role", "hero")
         self.decoded_text.setWordWrap(True)
-        self.decoded_text.setFont(QFont("Helvetica", 22))
-        self.decoded_text.setMinimumHeight(80)
-        v.addWidget(self.decoded_text)
+        self.decoded_text.setMinimumHeight(84)
+        cv.addWidget(self.decoded_text)
         self.raw_label = QLabel("")
-        self.raw_label.setStyleSheet("color:#888;")
+        self.raw_label.setProperty("role", "muted")
         self.raw_label.setWordWrap(True)
-        v.addWidget(self.raw_label)
+        cv.addWidget(self.raw_label)
         self.timing_label = QLabel("")
-        self.timing_label.setStyleSheet("color:#888;")
-        v.addWidget(self.timing_label)
-        v.addWidget(QLabel("Candidates (n-best):"))
+        self.timing_label.setProperty("role", "mono")
+        cv.addWidget(self.timing_label)
+        v.addWidget(card)
+        v.addWidget(self._eyebrow("CANDIDATES"))
         self.nbest = QListWidget()
         self.nbest.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         v.addWidget(self.nbest, 1)
-        v.addWidget(QLabel("Recent:"))
+        v.addWidget(self._eyebrow("RECENT"))
         self.recent = QListWidget()
         self.recent.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.recent.setMaximumHeight(120)
@@ -240,6 +266,7 @@ class Main(QMainWindow):
         self.raw_box.setChecked(True)
         row.addWidget(self.raw_box)
         self.start_btn = QPushButton("Start session")
+        self.start_btn.setObjectName("primary")
         self.start_btn.clicked.connect(self._start_session)
         row.addWidget(self.start_btn)
         self.stop_btn = QPushButton("Stop")
@@ -248,29 +275,41 @@ class Main(QMainWindow):
         row.addWidget(self.stop_btn)
         row.addStretch(1)
         v.addLayout(row)
-        self.progress_label = QLabel("No session. Pick a condition and press Start.")
+        self.progress_label = QLabel("")
+        self.progress_label.setProperty("role", "muted")
         v.addWidget(self.progress_label)
+        card = QFrame()
+        card.setProperty("role", "card")
+        cv = QVBoxLayout(card)
+        cv.setContentsMargins(18, 14, 18, 14)
+        cv.setSpacing(8)
         self.now_label = QLabel("")
-        self.now_label.setStyleSheet("color:#888;")
-        v.addWidget(self.now_label)
-        self.prompt_label = QLabel("")
+        self.now_label.setProperty("role", "eyebrow")
+        cv.addWidget(self.now_label)
+        self.prompt_label = QLabel("Pick a condition and press Start session.")
+        self.prompt_label.setProperty("role", "prompt")
         self.prompt_label.setWordWrap(True)
-        self.prompt_label.setFont(QFont("Helvetica", 24))
-        self.prompt_label.setMinimumHeight(90)
-        v.addWidget(self.prompt_label)
+        self.prompt_label.setMinimumHeight(70)
+        cv.addWidget(self.prompt_label)
         self.next_label = QLabel("")
-        self.next_label.setStyleSheet("color:#888;")
-        v.addWidget(self.next_label)
+        self.next_label.setProperty("role", "muted")
+        cv.addWidget(self.next_label)
+        v.addWidget(card)
         self.rec_status = QLabel("")
         v.addWidget(self.rec_status)
-        box = QGroupBox("Read-back of the last take")
-        self.readback_box = box
+        box = QFrame()
+        box.setProperty("role", "card")
         bv = QVBoxLayout(box)
+        bv.setContentsMargins(18, 14, 18, 14)
+        bv.setSpacing(8)
+        self.readback_title = self._eyebrow("READ-BACK OF THE LAST TAKE")
+        bv.addWidget(self.readback_title)
         self.readback = QLabel("")
+        self.readback.setProperty("role", "readback")
         self.readback.setWordWrap(True)
-        self.readback.setFont(QFont("Helvetica", 16))
         bv.addWidget(self.readback)
         self.rec_acc = QLabel("")
+        self.rec_acc.setProperty("role", "muted")
         bv.addWidget(self.rec_acc)
         v.addWidget(box)
         row = QHBoxLayout()
@@ -283,7 +322,7 @@ class Main(QMainWindow):
         row.addStretch(1)
         v.addLayout(row)
         self.counts_label = QLabel("")
-        self.counts_label.setStyleSheet("color:#888;")
+        self.counts_label.setProperty("role", "muted")
         v.addWidget(self.counts_label)
         v.addStretch(1)
         self._refresh_counts()
@@ -302,6 +341,7 @@ class Main(QMainWindow):
         self.strategy.addItems(["light", "both", "full"])
         row.addWidget(self.strategy)
         self.train_btn = QPushButton("Train personal model")
+        self.train_btn.setObjectName("primary")
         self.train_btn.clicked.connect(self._train)
         row.addWidget(self.train_btn)
         self.eval_btn = QPushButton("Evaluate")
@@ -319,14 +359,19 @@ class Main(QMainWindow):
         self.log = QPlainTextEdit()
         self.log.setReadOnly(True)
         self.log.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.log.setStyleSheet("font-family:Menlo; font-size:12px;")
         v.addWidget(self.log, 1)
         hint = QLabel("Train needs 20+ takes. Every 5th take is held out; the personal model is kept only if it "
                       "beats the base model on those. Results also land in docs/results/.")
         hint.setWordWrap(True)
-        hint.setStyleSheet("color:#888;")
+        hint.setProperty("role", "muted")
         v.addWidget(hint)
         return w
+
+    @staticmethod
+    def _eyebrow(text: str) -> QLabel:
+        lab = QLabel(text)
+        lab.setProperty("role", "eyebrow")
+        return lab
 
     # ------------------------------------------------------------------ checks / camera / models
     def _refresh_checks(self):
@@ -337,7 +382,8 @@ class Main(QMainWindow):
         for name, ok, detail in engine.checks():
             lab = QLabel(("● " if ok else "○ ") + name)
             lab.setToolTip(detail)
-            lab.setStyleSheet(f"color:{'#3fb950' if ok else '#f85149'}; padding:2px 6px;")
+            lab.setProperty("role", "chip")
+            lab.setProperty("ok", "true" if ok else "false")
             self.checks_row.addWidget(lab)
         self.checks_row.addStretch(1)
 
@@ -423,14 +469,18 @@ class Main(QMainWindow):
             self.preview.setPixmap(bgr_to_pixmap(f.bgr, f.obs))
             from silentdict.activity import bar_levels
             levels = bar_levels(self.camera.recent_obs(7))
-            self.bars.setText(" ".join("█" * max(1, int(v * 8)) for v in levels))
-            self.cam_info.setText(f"{self.camera_name}  {self.camera.measured_fps:.0f} fps  "
+            self.bars.set_levels(levels, recording=self.camera.recording)
+            self.cam_info.setText(f"{self.camera_name}  ·  {self.camera.measured_fps:.0f} fps  ·  "
                                   f"{'face' if f.obs else 'no face'}")
         rec = self.camera.recording
-        self.space_label.setStyleSheet(
-            "font-size:16px; padding:8px; border-radius:6px; "
-            + ("background:#b91c1c; color:white;" if rec else "border:1px solid #444;"))
-        self.space_label.setText("● RECORDING  (release Space to stop)" if rec else "Hold  SPACE  to capture")
+        state = (rec, self.recognizer is not None)
+        if state != self._capture_state:
+            self._capture_state = state
+            self.space_label.setProperty("recording", "true" if rec else "false")
+            self.space_label.setProperty("armed", "true" if state[1] else "false")
+            self.space_label.setText("●  RECORDING   release Space to stop" if rec
+                                     else ("Hold  SPACE  to capture" if state[1] else "Loading model…"))
+            repolish(self.space_label)
 
     def eventFilter(self, obj, ev):
         if ev.type() in (QEvent.Type.KeyPress, QEvent.Type.KeyRelease) and ev.key() == Qt.Key.Key_Space \
@@ -535,8 +585,8 @@ class Main(QMainWindow):
         self.start_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)
         self.condition.setEnabled(True)
-        self.progress_label.setText("Session stopped.")
-        self.prompt_label.setText("")
+        self.progress_label.setText("")
+        self.prompt_label.setText("Session stopped. Train when you have 20+ takes.")
         self.now_label.setText("")
         self.next_label.setText("")
         self._refresh_counts()
@@ -552,14 +602,14 @@ class Main(QMainWindow):
         self.prompt_label.setText(snap["prompt"] or "Session complete. Train when you have 20+ takes.")
         self.now_label.setText("Now hold SPACE and mouth:" if snap["prompt"] else "")
         self.next_label.setText(f"next: {snap['next']}" if snap["next"] else "")
-        color = {"saved": "#3fb950", "retry": "#f85149", "saving": "#d29922"}.get(snap["status"], "#888")
+        color = {"saved": P["good"], "retry": P["bad"], "saving": P["warn"]}.get(snap["status"], P["muted"])
         self.rec_status.setText(f'<span style="color:{color}">{snap["status"]}</span>  {snap["message"]}')
         last = snap.get("last")
         if last:
-            self.readback_box.setTitle(f'Read-back of the last take  ·  "{last["prompt"]}"')
+            self.readback_title.setText(f'READ-BACK OF THE LAST TAKE  ·  "{last["prompt"]}"')
             self.readback.setText(align_html(last["align"]) if last["align"] else last["read"])
         else:
-            self.readback_box.setTitle("Read-back of the last take")
+            self.readback_title.setText("READ-BACK OF THE LAST TAKE")
             self.readback.setText("")
         acc = snap.get("accuracy")
         self.rec_acc.setText(f"session word accuracy with current model: {acc:.0%}" if acc is not None else "")
@@ -647,6 +697,16 @@ class Main(QMainWindow):
 def main(camera: str = "0") -> int:
     app = QApplication([])
     app.setApplicationName("Mindreader")
+    theme.apply(app)
     win = Main(camera=camera)
     win.show()
+    shot = os.environ.get("MINDREADER_SHOT")   # debug: save a window render per tab after 6 s, then quit
+    if shot:
+        def grab():
+            for i in range(win.tabs.count()):
+                win.tabs.setCurrentIndex(i)
+                app.processEvents()
+                win.grab().save(f"{shot}-{i}.png")
+            app.quit()
+        QTimer.singleShot(6000, grab)
     return app.exec()
