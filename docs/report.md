@@ -101,19 +101,6 @@ to go.
   worse, because it started forcing those words into sentences. I left it in as an optional
   formatter. The language model can tidy up, but the lip reader has to get the words.
 
-## Things I'd want to know before doing this again
-
-- The M2 can do the light fine-tune (70 minutes for 81 takes) but swaps hopelessly on the full one.
-  The 4090 did 30 epochs in 8 minutes.
-- Moving files took longer than training. My Wi-Fi uplink measured tens of KB/s, and SSH into the
-  pod crawled at 5 KB/s. RunPod's own relay transfer moved the same files at 1.6 MB/s. The pod
-  should download the 4.8 GB model checkpoint itself (it did that at 48 MB/s) rather than get it
-  from the laptop.
-- Proper names aren't in the model's vocabulary and come out garbled. A custom prompt file with
-  your own names is the lever there.
-- FLARE's weights are licensed for non-commercial use. Anything beyond a demo would need its own
-  model.
-
 ## Where I landed
 
 The model reads lip shape, and lip shape is exactly what goes away as you mouth smaller. Real
@@ -142,6 +129,5 @@ built that. This experiment is the data pipeline for it, in miniature.
 ## Code
 
 Code, protocol and the full lab notebook are at
-[github.com/cambaughn/mindreader](https://github.com/cambaughn/mindreader). The recordings stay on
-my laptop; nothing personal is in the repo. Built on
+[github.com/cambaughn/mindreader](https://github.com/cambaughn/mindreader). Built on
 [silent-dictation](https://github.com/KeWang0622/silent-dictation) by Ke Wang.
