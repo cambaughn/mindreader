@@ -164,3 +164,31 @@ question is now how many sentences it takes.
 - This answers open question 1. Silent mouthing is a different visual dialect, and the project's
   job is to teach it. The lever is silent data volume; the next recording session should be silent
   only and as large as patience allows.
+
+### 2026-11-03 — Third fine-tune: 81 silent takes (65 train / 16 held-out)
+
+- 60 more silent takes recorded in one sitting, with natural variation in voicing and facial
+  emphasis ("all subvocal"). Same recipe as before (light, lr 3e-4, 30 epochs). 70 minutes on the
+  M2, 100–180 s per epoch, Mac hot but usable. Still improving at epoch 30 (best 50.8% at epoch 28).
+- Learning curve so far, held-out WER on the same 16 sentences:
+
+  | trained on          | held-out WER | + LLM rescoring |
+  |---------------------|--------------|-----------------|
+  | nothing (base)      | 72.2%        |                 |
+  | 17 silent takes     | 61.9%        |                 |
+  | 65 silent takes     | 54.8%        | 49.2%           |
+
+  Training-set WER 1.4%, 59/81 sentences exact overall, 0/16 held-out exact. The model memorises
+  what it sees and generalises partially; the curve is still bending down with data.
+- **Confound, now understood:** every one of the 16 held-out sentences is a Harvard sentence
+  (hogs, chopped corn, colts, stockings). The engine's prompt list alternates 3 everyday dictation
+  sentences then 2 Harvard, and every 5th take is held out, so the held-out slot always lands on
+  Harvard. The model is graded only on the hardest category (rare words, no everyday phrasing for
+  the decoder's language prior to lean on) while training is 60% everyday phrases. The held-out
+  numbers above are a floor for real dictation, not an estimate of it. Fixed going forward by
+  shuffling the prompt order per session (seeded), so future held-out takes are a fair mix.
+  Existing splits stay as they are; mixing them now would leak training sentences into held-out.
+- Error shape on held-out: function words and common nouns mostly survive ("the fish twisted and
+  turned on the ___", "read a verse out loud for the pleasure"); rare content words go
+  (salmon→examiner, cushion→tool chip, colt→golden). That is the language prior filling in, which is
+  what LLM rescoring with personal context is for.

@@ -108,3 +108,18 @@ def test_prompts_for_other_conditions_reuse_silent_sentences(fresh_data):
     assert "ZETA FIRST" in recorder.prompts_for_condition(10, "whisper")
     fresh = recorder.prompts_for_condition(5, "silent")
     assert len(fresh) == 5 and "ZETA FIRST" not in [p.upper() for p in fresh]
+
+
+def test_silent_prompts_are_shuffled_so_held_out_is_not_always_harvard(fresh_data, monkeypatch):
+    everyday = [f"everyday {i}" for i in range(12)]
+    harvard = [f"harvard {i}" for i in range(8)]
+    mixed = []
+    while everyday or harvard:                      # the engine's 3:2 interleave
+        mixed += everyday[:3] + harvard[:2]
+        everyday, harvard = everyday[3:], harvard[2:]
+    monkeypatch.setattr(recorder, "load_prompts", lambda count: mixed[:count])
+    assert all(p.startswith("harvard") for p in mixed[4::5])      # the problem, in list order
+    out = recorder.prompts_for_condition(20, "silent")
+    assert sorted(out) == sorted(mixed) and out != mixed
+    assert not all(p.startswith("harvard") for p in out[4::5])    # held-out slots now mixed
+    assert out == recorder.prompts_for_condition(20, "silent")    # stable within a session

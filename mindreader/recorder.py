@@ -219,6 +219,16 @@ def load_prompts(count: int, skip_recorded: bool = True) -> list[str]:
     return _lp(count, skip_recorded=skip_recorded)
 
 
+def shuffled(prompts: list[str], seed: int) -> list[str]:
+    """The engine's prompt list alternates 3 everyday sentences then 2 Harvard ones, and the engine
+    holds out every 5th take, so in list order the held-out slot always lands on a Harvard sentence
+    (learnings 2026-11-03). A seeded shuffle per session makes the held-out set a fair mix."""
+    import random
+    out = list(prompts)
+    random.Random(seed).shuffle(out)
+    return out
+
+
 def prompts_for_condition(count: int, condition: str) -> list[str]:
     """Sentences to record next under `condition`.
 
@@ -228,7 +238,7 @@ def prompts_for_condition(count: int, condition: str) -> list[str]:
     """
     from silentdict.dataset import load_items
     if condition == "silent":
-        return load_prompts(count)
+        return shuffled(load_prompts(count), seed=len(load_items()))
     done = {it.text for it in load_items() if condition_of(it) == condition}
     silent = []
     for it in sorted(load_items(), key=lambda i: i.created):
