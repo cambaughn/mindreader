@@ -84,7 +84,7 @@ Other commands: `scripts/mindreader counts | train [--condition silent] | eval [
 3. **Train** on all takes (or silent-only). ~10 min per 60 sentences on an M5 Max; slower on an M2.
 4. **Record the same 20 sentences voiced and whispered** so the conditions can be compared.
 5. **Evaluate**: WER per condition, base vs personal, against chance (hypotheses shuffled across
-   sentences). Results land in `docs/results/` and are summarised in `docs/learnings.md`.
+   sentences). Results land in `docs/results/` (ignored by git) and are summarised in `docs/learnings.md`.
 6. **Dictate anywhere** to try it as a tool.
 
 ## Training on a rented GPU

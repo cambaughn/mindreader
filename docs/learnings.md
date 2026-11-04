@@ -271,5 +271,4 @@ question is now how many sentences it takes.
   reads lip shape, and lip shape is what disappears as you mouth smaller; true subvocal speech is
   jaw and cheek muscle with almost no visible movement. A sensor limit, not a data limit. This is
   the camera's answer to subvox's question: yes for visible mouthing, no for barely-moving speech.
-- Status: experiment closed here. Repo public, report in docs/report.md, thread draft in
-  docs/thread.md.
+- Status: experiment closed here. Repo public, write-up in docs/report.md.
