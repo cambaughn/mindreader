@@ -7,4 +7,4 @@ if [[ ! -x "$PY" ]]; then
   exit 1
 fi
 cd "$DIR"
-exec "$PY" -m mindreader "$@"
+PYTHONUNBUFFERED=1 exec "$PY" -m mindreader "$@"

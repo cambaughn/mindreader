@@ -87,6 +87,24 @@ Other commands: `scripts/mindreader counts | train [--condition silent] | eval [
    sentences). Results land in `docs/results/` and are summarised in `docs/learnings.md`.
 6. **Dictate anywhere** to try it as a tool.
 
+## Training on a rented GPU
+
+The M2 handles the light fine-tune (about 20 min per 20 takes) but runs hot, and the full
+fine-tune swaps on 24 GB. `scripts/remote/` moves training to a RunPod-style box with SSH over
+TCP: it copies the code, the FLARE weights (764 MB, once) and your dataset (tens of MB), installs
+the few Linux deps, trains, and brings `flare_personal.pth` back into the data folder, keeping a
+copy of the previous one.
+
+```bash
+scripts/remote/run.sh root@HOST PORT                      # silent takes, both strategies, 30 epochs
+scripts/remote/run.sh root@HOST PORT -- --strategy full --epochs 40
+```
+
+Pick a PyTorch image with CUDA (any 24 GB card is plenty). The pieces are separate scripts
+(`sync-up.sh`, `setup-pod.sh`, `train-pod.sh`, `sync-down.sh`) so a failed step can be rerun
+alone. Raw video is not uploaded; the model trains on the stored 96×96 crops. Mouth and face crops
+of your takes do leave the Mac for the duration, which is the privacy trade.
+
 ## Tests
 
 No camera, models or network required (fake frames and a fake recognizer):
