@@ -2,7 +2,7 @@
 
 A local macOS research tool for a single question:
 
-> **Can the MacBook's camera read words I only mouth, well enough to type them for me?**
+> **Can the MacBook's camera turn silent mouth movements into typed text?**
 
 It is the camera-and-lips sibling of [subvox](https://github.com/joeblau/subvox), which asked the
 same question of AirPods head-motion. Where subvox learns per-word motion templates from scratch,

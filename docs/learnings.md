@@ -2,7 +2,7 @@
 
 ## Question
 
-Can the MacBook's camera read words I only mouth, well enough to type them for me?
+Can the MacBook's camera turn silent mouth movements into typed text?
 
 ## Answer
 
