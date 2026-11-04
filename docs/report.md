@@ -3,13 +3,16 @@
 *A two-day experiment in silent-speech dictation. November 2026.*
 
 I spent two evenings finding out whether the webcam on a MacBook can transcribe sentences that I
-mouth without making a sound, and how much of my own data it takes to make that work. Short
-version: a public lip-reading model gets about half the words of silently mouthed everyday
-sentences. After fine-tuning on 113 sentences of my own silent mouthing (about seven minutes of
-video), it gets 87% of the words on everyday sentences it has never seen, and reads half of them
-perfectly. In casual use it is still hit or miss, and exaggerated mouthing helps. Rare vocabulary
-is hard. Silent mouthing turns out to be a visibly different thing from speech with the sound off,
-and nobody has trained a model on it yet.
+mouth without making a sound, and how much of my own data it takes to make that work. Where it
+landed: a public lip-reading model gets about half the words of silently mouthed everyday
+sentences, because silent mouthing looks different from speech with the sound off and no model has
+been trained on it. After fine-tuning on 113 sentences of my own silent mouthing (about seven
+minutes of video), it gets 87% of the words on everyday sentences it has never seen, and reads half
+of them perfectly. But only when I mouth visibly. In casual use it is hit or miss, and the smaller
+the mouthing, the less there is to read. The thing I actually wanted, barely-moving subvocal
+speech, is out of a camera's reach: that is a sensor limit, not a data limit. So: yes for visible
+mouthing with a few minutes of your own data, no for the real thing, and worth publishing because
+it draws that line with numbers.
 
 ## Why
 
@@ -72,8 +75,8 @@ people". The remaining misses are the lip-reading classics: "first draft" read a
 "read lips" as "ring limbs".
 
 The Harvard sentences stay hard. Rare words with no everyday phrasing to lean on ("the colt
-reared and threw the tall rider") are where seven minutes of one person's video runs out. That is
-the honest ceiling of this setup, not of the idea.
+reared and threw the tall rider") are where seven minutes of one person's video runs out. More
+takes would keep moving this line; the real ceiling is in the next finding.
 
 ## Finding 3: live use is still hit or miss
 
@@ -81,8 +84,9 @@ After all that, casual use at the Decode tab is still hit or miss. Sentences lan
 moment and fall apart the next, and exaggerating the mouthing helps noticeably: bigger, clearer lip
 shapes give the model more to read. The held-out numbers above come from takes recorded while
 reading a prompt at a steady pace with the face centred, which is a kinder setting than muttering a
-thought at the screen. That is the gap between a measured 87% and a tool you would trust:
-consistency, and a model that has seen your lazy mouthing as well as your careful kind.
+thought at the screen. And the smaller you mouth, the worse it gets, which is the wrong direction
+for the thing I wanted. That is the gap between a measured 87% and a tool you would trust, and the
+next section is why I don't think more data closes it.
 
 ## What did not help
 
@@ -129,13 +133,14 @@ it draws that line with numbers.
 ## What I would do next
 
 If I kept going: another few hundred silent takes, deliberately including lazy, fast and casual
-mouthing so the training data looks like real use, to see where the curve flattens; a stratified
+mouthing, to measure how small the mouthing can get before the curve stops moving; a stratified
 held-out split from the start (my first held-out set was accidentally all Harvard sentences,
 which made early numbers look worse than real use); the full fine-tune at a higher learning rate;
 and then the dictation hotkey, which the engine already provides, with the LLM pass restored as a
 pure formatter on top of a lip reader that is mostly right.
 
-The bigger idea is the one nobody has built: a model trained on silent mouthing from many people,
+The bigger idea, for visible mouthing, is the one nobody has built: a model trained on silent
+mouthing from many people,
 so that a new user needs a few minutes of enrollment instead of an evening of recording. The data
 pipeline for that is exactly what this experiment produced in miniature.
 
