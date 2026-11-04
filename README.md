@@ -122,7 +122,7 @@ personal model, training and evaluation reports. Delete the folder to erase ever
 
 ## Results
 
-Full write-up: [docs/report.md](docs/report.md). Lab notebook with the dead ends:
+Write-up: [Silent speech from a laptop camera](docs/report.md). Lab notebook with the dead ends:
 [docs/learnings.md](docs/learnings.md).
 
 Same 28 held-out silent sentences (10 everyday, 18 Harvard) for every model, word error rate:
@@ -133,9 +133,11 @@ Same 28 held-out silent sentences (10 everyday, 18 Harvard) for every model, wor
 | 65 silent takes | 42.8% | 24.0% | 52.9% |
 | 113 silent takes | 36.3% | 13.3% | 48.6% |
 
-The public model reads the same sentences spoken aloud at 25.5% WER and mouthed silently at 72.2%,
-so silent mouthing is a different visual dialect, and personal data teaches it. Live use is still
-hit or miss; exaggerated mouthing helps.
+The public model reads the same sentences at 25.5% WER spoken aloud and 72.2% mouthed silently.
+Silent mouthing doesn't look like speech with the sound off, and a few minutes of your own takes
+teach the model most of the difference. Live use is still hit or miss, and only works when you
+mouth the words big. Barely-moving subvocal speech is out of a camera's reach; that's a sensor
+limit, not a data limit.
 
 ## License
 
