@@ -7,9 +7,10 @@ from the shareable page. Numbers below are from docs/report.md.
 ---
 
 **1/**
-I spent two evenings teaching my MacBook's webcam to read words I only mouth. No sound, no mic.
-After ~7 minutes of my own recordings it gets 87% of the words on everyday sentences it has never
-seen. Live use is still hit or miss. Here's what I learned.
+I spent two evenings picking up where @joeblau's subvox left off: can a MacBook webcam read words
+you only mouth? After ~7 minutes of my own recordings it gets 87% of the words on everyday
+sentences it has never seen, as long as you mouth them visibly. Here's what I learned, including
+why I think video alone can't go further.
 
 **2/**
 Starting point: a public lip-reading model (FLARE, trained on thousands of hours of TED/YouTube
@@ -44,11 +45,17 @@ screen it's still hit or miss, and exaggerating the mouthing helps a lot. The ga
 measured 87% and a tool you'd trust is consistency, and training data that looks like real use.
 
 **8/**
+Where that leaves it: not a tool, and I don't think video gets there. The model reads lip shape,
+and lip shape is what disappears as you mouth smaller. Real subvocal speech is jaw and cheek
+muscle with almost no visible movement. That's a sensor problem, not a data problem, and it's why
+the serious attempts use electrodes on the jaw.
+
+**9/**
 Practical bits: an M2 can do the light fine-tune in ~an hour; a rented 4090 did it in 8 minutes.
 Moving files took longer than training. Rare vocabulary is still hard: 7 minutes of one person's
 video runs out at "the colt reared and threw the tall rider".
 
-**9/**
+**10/**
 Everything's open: code, protocol, and the full lab notebook with the dead ends.
 github.com/cambaughn/mindreader
 Built on @KeWang0622's silent-dictation engine. Inspired by @joeblau's subvox.

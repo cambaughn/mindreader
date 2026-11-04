@@ -113,6 +113,19 @@ consistency, and a model that has seen your lazy mouthing as well as your carefu
   your own names is the lever there.
 - FLARE's weights are licensed for non-commercial use. A product would need its own backbone.
 
+## Where this leaves it
+
+As a tool, not there, and I don't think video gets there. The model reads lip shape, and lip shape is
+exactly what disappears as you mouth smaller. Real subvocal speech is jaw, cheek and tongue muscle
+with almost no visible movement, and a camera looking at a 96-pixel mouth cannot see tension in a
+jaw. More data moves the curve for visible mouthing; it cannot recover a signal that never reached
+the sensor. That is a sensor problem, not a training problem, which is why subvox reached for
+head motion and why the serious attempts at silent speech put electrodes on the jaw and throat.
+
+So this is the camera's answer to subvox's question: yes for visible mouthing, with a few minutes of
+your own data; no for the barely-moving kind you would actually want at a desk. Worth doing because
+it draws that line with numbers.
+
 ## What I would do next
 
 If I kept going: another few hundred silent takes, deliberately including lazy, fast and casual

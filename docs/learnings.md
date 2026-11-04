@@ -267,5 +267,9 @@ question is now how many sentences it takes.
   sentence at a steady pace, face centred), a kinder setting than muttering a thought at the
   screen. The next dataset should deliberately include lazy, fast and casual mouthing, and the eval
   should score a batch of unprompted live decodes, not only held-out takes.
+- Conclusion (Cameron): "no amount of training will get you there from video only." The model
+  reads lip shape, and lip shape is what disappears as you mouth smaller; true subvocal speech is
+  jaw and cheek muscle with almost no visible movement. A sensor limit, not a data limit. This is
+  the camera's answer to subvox's question: yes for visible mouthing, no for barely-moving speech.
 - Status: experiment closed here. Repo public, report in docs/report.md, thread draft in
   docs/thread.md.
