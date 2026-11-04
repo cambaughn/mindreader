@@ -122,7 +122,20 @@ personal model, training and evaluation reports. Delete the folder to erase ever
 
 ## Results
 
-See [docs/learnings.md](docs/learnings.md) and [docs/results/](docs/results/).
+Full write-up: [docs/report.md](docs/report.md). Lab notebook with the dead ends:
+[docs/learnings.md](docs/learnings.md).
+
+Same 28 held-out silent sentences (10 everyday, 18 Harvard) for every model, word error rate:
+
+| trained on | all 28 | everyday 10 | Harvard 18 |
+|------------|--------|-------------|------------|
+| nothing (public FLARE) | 64.7% | 49.3% | 72.9% |
+| 65 silent takes | 42.8% | 24.0% | 52.9% |
+| 113 silent takes | 36.3% | 13.3% | 48.6% |
+
+The public model reads the same sentences spoken aloud at 25.5% WER and mouthed silently at 72.2%,
+so silent mouthing is a different visual dialect, and personal data teaches it. Live use is still
+hit or miss; exaggerated mouthing helps.
 
 ## License
 
