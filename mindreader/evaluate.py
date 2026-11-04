@@ -80,8 +80,22 @@ def format_table(report: dict) -> str:
     return "\n".join(rows)
 
 
+def decode_with_rewrite(reader, items, rescorer, cleaner, on_item=None) -> tuple[list, list]:
+    """(rescored pairs, rewritten pairs): the engine's choice among the n-best, and the LLM rewrite of it."""
+    chosen, rewritten = [], []
+    for i, it in enumerate(items):
+        if on_item:
+            on_item(i / max(1, len(items)))
+        hyps = reader(it.clip(), nbest=10)
+        cands = [h.text for h in hyps]
+        best = rescorer.best(hyps, reader.name) if rescorer is not None and len(hyps) > 1 else (cands[0] if cands else "")
+        chosen.append((it.text, best))
+        rewritten.append((it.text, cleaner.rewrite([best] + [c for c in cands if c != best])))
+    return chosen, rewritten
+
+
 def evaluate(device: str = "auto", model: str | None = None, log=print, use_llm: bool = False,
-             on_progress=None) -> dict:
+             on_progress=None, use_rewrite: bool = False) -> dict:
     """Base vs personal WER on the held-out split, per condition, with the chance baseline.
     Writes docs/results/eval-<stamp>.md in the repo and eval-<stamp>.json in the data folder."""
     from silentdict import paths
@@ -95,10 +109,13 @@ def evaluate(device: str = "auto", model: str | None = None, log=print, use_llm:
     conditions = [condition_of(it) for it in val]
     log(f"Model: {backend.name}. Held-out clips: {len(val)} "
         f"({', '.join(f'{c}: {conditions.count(c)}' for c in dict.fromkeys(conditions))})")
-    rescorer = None
-    if use_llm and paths.LLM_DIR.exists():
+    rescorer = cleaner = None
+    if (use_llm or use_rewrite) and paths.LLM_DIR.exists():
         from silentdict.rewrite import Rescorer  # pragma: no cover
         rescorer = Rescorer()
+        if use_rewrite:
+            from .cleanup import Cleaner  # pragma: no cover
+            cleaner = Cleaner(rescorer=rescorer)
     variants = [("base", False)]
     if backend.weights_path.exists():
         variants.append(("personal", True))
@@ -106,12 +123,18 @@ def evaluate(device: str = "auto", model: str | None = None, log=print, use_llm:
     for k, (name, personal) in enumerate(variants):
         t0 = time.time()
         reader = backend.reader(device, personal)
-        pairs = decode_items(reader, val, rescorer=rescorer,
-                             on_item=(lambda f, k=k: on_progress((k + f) / len(variants))) if on_progress else None)
-        del reader
+        on_item = (lambda f, k=k: on_progress((k + f) / len(variants))) if on_progress else None
         label = name + ("+llm" if rescorer else "")
-        pairs_by_model[label] = pairs
-        log(f"{label:13s} WER {corpus_wer(pairs):.1%}  ({time.time() - t0:.0f}s)")
+        if cleaner is not None:
+            pairs, rewritten = decode_with_rewrite(reader, val, rescorer, cleaner, on_item=on_item)
+            pairs_by_model[label] = pairs
+            pairs_by_model[label + "+rewrite"] = rewritten
+            log(f"{label + '+rewrite':21s} WER {corpus_wer(rewritten):.1%}")
+        else:
+            pairs = decode_items(reader, val, rescorer=rescorer, on_item=on_item)
+            pairs_by_model[label] = pairs
+        del reader
+        log(f"{label:21s} WER {corpus_wer(pairs):.1%}  ({time.time() - t0:.0f}s)")
     report = summarize(pairs_by_model, conditions)
     report.update({"time": time.strftime("%Y-%m-%d %H:%M"), "model": backend.name,
                    "examples": [{"ref": r, **{m: pairs_by_model[m][i][1] for m in pairs_by_model}}

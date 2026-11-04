@@ -31,7 +31,7 @@ def cmd_train(args):
 
 def cmd_eval(args):
     from .evaluate import evaluate
-    evaluate(model=args.model, use_llm=args.llm, device=args.device)
+    evaluate(model=args.model, use_llm=args.llm, use_rewrite=args.rewrite, device=args.device)
     return 0
 
 
@@ -82,6 +82,7 @@ def main(argv=None) -> int:
     e = sub.add_parser("eval", help="base vs personal WER per condition, with chance baseline")
     e.add_argument("--model", choices=["auto", "flare", "auto_avsr"], default="auto")
     e.add_argument("--llm", action="store_true", help="also rescore with the local language model")
+    e.add_argument("--rewrite", action="store_true", help="also rewrite with the local language model (clean-up)")
     e.add_argument("--device", default="auto")
     sub.add_parser("counts", help="takes recorded per condition")
     sub.add_parser("dictate", help="hotkey dictation into any app (the engine's app, using your personal model)")

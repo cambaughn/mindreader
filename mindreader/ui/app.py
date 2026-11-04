@@ -105,6 +105,7 @@ class Main(QMainWindow):
         self.camera_name = ""
         self.recognizer = None
         self.rescorer = None
+        self.cleaner = None
         self.model_lock = threading.Lock()
         self.segments: queue.Queue = queue.Queue()
         self.session: RecordSession | None = None
@@ -186,9 +187,14 @@ class Main(QMainWindow):
         self.personal_box.setChecked(True)
         self.personal_box.toggled.connect(lambda _: self._load_models_async())
         row.addWidget(self.personal_box)
-        self.llm_box = QCheckBox("AI clean-up (local LLM)")
+        self.llm_box = QCheckBox("LLM re-rank (choose among guesses)")
         self.llm_box.toggled.connect(self._toggle_llm)
         row.addWidget(self.llm_box)
+        self.rewrite_box = QCheckBox("LLM rewrite (clean-up)")
+        self.rewrite_box.setToolTip("Rewrite the guesses into a clean sentence. Needs the re-rank LLM loaded. "
+                                    "Measured neutral-to-slightly-positive on words; adds caps and punctuation.")
+        self.rewrite_box.toggled.connect(lambda on: on and not self.llm_box.isChecked() and self.llm_box.setChecked(True))
+        row.addWidget(self.rewrite_box)
         row.addStretch(1)
         v.addLayout(row)
         self.decoded_text = QLabel("Hold Space, mouth a sentence, release.")
@@ -196,6 +202,10 @@ class Main(QMainWindow):
         self.decoded_text.setFont(QFont("Helvetica", 22))
         self.decoded_text.setMinimumHeight(80)
         v.addWidget(self.decoded_text)
+        self.raw_label = QLabel("")
+        self.raw_label.setStyleSheet("color:#888;")
+        self.raw_label.setWordWrap(True)
+        v.addWidget(self.raw_label)
         self.timing_label = QLabel("")
         self.timing_label.setStyleSheet("color:#888;")
         v.addWidget(self.timing_label)
@@ -297,8 +307,10 @@ class Main(QMainWindow):
         self.eval_btn = QPushButton("Evaluate")
         self.eval_btn.clicked.connect(self._eval)
         row.addWidget(self.eval_btn)
-        self.eval_llm = QCheckBox("with LLM")
+        self.eval_llm = QCheckBox("with LLM re-rank")
         row.addWidget(self.eval_llm)
+        self.eval_rewrite = QCheckBox("+ rewrite")
+        row.addWidget(self.eval_rewrite)
         row.addStretch(1)
         v.addLayout(row)
         self.job_progress = QProgressBar()
@@ -376,7 +388,8 @@ class Main(QMainWindow):
 
     def _toggle_llm(self, on: bool):
         if not on:
-            self.rescorer = None
+            self.rescorer = self.cleaner = None
+            self.rewrite_box.setChecked(False)
             if self.recognizer:
                 self.recognizer.rescorer = None
             return
@@ -390,9 +403,10 @@ class Main(QMainWindow):
         def go():
             try:
                 from silentdict.rewrite import Rescorer
+                from ..cleanup import Cleaner
                 r = Rescorer()
                 r.logprob("HELLO THERE")
-                self.rescorer = r
+                self.rescorer, self.cleaner = r, Cleaner(rescorer=r)
                 if self.recognizer:
                     self.recognizer.rescorer = r
                 self.sig.status.emit("Language model ready.")
@@ -461,6 +475,14 @@ class Main(QMainWindow):
                         self.sig.status.emit("Decoding…")
                         t = time.perf_counter()
                         res = rec.recognize_frames(frames, rescore=self.llm_box.isChecked())
+                        res.cleaned = None
+                        if self.rewrite_box.isChecked() and self.cleaner and res.hyps:
+                            from silentdict.text import sentence_case
+                            cands = [h.text for h in res.hyps]
+                            chosen = next((c for c in cands if sentence_case(c) == res.text), cands[0])
+                            t1 = time.perf_counter()
+                            res.cleaned = self.cleaner.rewrite([chosen] + [c for c in cands if c != chosen])
+                            res.timings["rewrite"] = time.perf_counter() - t1
                         res.timings["total"] = time.perf_counter() - t
                         res.timings["frames"] = len(frames)
                         self.sig.decoded.emit(res)
@@ -473,9 +495,12 @@ class Main(QMainWindow):
             self.decoded_text.setText(f"({res.error})")
             self.sig.status.emit(res.error)
             return
-        self.decoded_text.setText(res.text)
-        self.history.append(res.text)
-        self.recent.insertItem(0, res.text)
+        cleaned = getattr(res, "cleaned", None)
+        shown = cleaned or res.text
+        self.decoded_text.setText(shown)
+        self.raw_label.setText(f"lip reader: {res.text}" if cleaned else "")
+        self.history.append(shown)
+        self.recent.insertItem(0, shown)
         self.nbest.clear()
         for h in res.hyps:
             self.nbest.addItem(f"{h.score:8.2f}   {h.text.lower()}")
@@ -603,7 +628,8 @@ class Main(QMainWindow):
 
     def _eval(self):
         from ..evaluate import evaluate
-        self._run_job("eval", lambda: evaluate(use_llm=self.eval_llm.isChecked(), log=self.sig.log.emit,
+        self._run_job("eval", lambda: evaluate(use_llm=self.eval_llm.isChecked(), use_rewrite=self.eval_rewrite.isChecked(),
+                                               log=self.sig.log.emit,
                                                on_progress=lambda f: self.sig.progress.emit("eval", f)))
 
     # ------------------------------------------------------------------ dictate / close

@@ -192,3 +192,33 @@ question is now how many sentences it takes.
   turned on the ___", "read a verse out loud for the pleasure"); rare content words go
   (salmon→examiner, cushion→tool chip, colt→golden). That is the language prior filling in, which is
   what LLM rescoring with personal context is for.
+
+### 2026-11-03 — LLM clean-up (rewrite) experiment
+
+- Added a rewrite step after the engine's re-ranker: the local Qwen3-4B gets the lip reader's
+  guesses and returns the sentence the person most likely said, with caps and punctuation
+  (`mindreader/cleanup.py`; "LLM rewrite" checkbox in the Decode tab; `eval --rewrite`). Scoring
+  ignores case and punctuation (the engine's WER already does), and the experiment also mapped
+  digits to words so "10 minutes" = "ten minutes".
+- First attempt put the personal context words (GitHub, Slack) in the rewrite prompt. The 4B
+  model forced them into sentences ("far short of GitHub", "Slack is often served in round
+  booths"): worse on every set. The rewrite prompt now leaves context out; the re-ranker, which
+  can only choose among candidates, keeps the personal vocabulary.
+- Without context, numbers normalised, personal model unless stated:
+
+  | input                        | re-ranked | rewrite from best guess | rewrite from n-best |
+  |------------------------------|-----------|-------------------------|---------------------|
+  | silent held-out (16)         | 48.4%     | 50.0%                   | 46.8%               |
+  | voiced, all 20, base model   | 24.2%     | 24.8%                   | 23.6%               |
+  | silent held-out, base model  | 64.3%     |                         | 72.2%               |
+
+  Rewriting from the n-best list is neutral to slightly positive (one or two words per set);
+  from the single best guess it is neutral or worse; and on bad input (base model, silent) it is
+  clearly harmful: fluent, confident, wrong. ~1.4 s per sentence on the M2, doubling decode time.
+- It does fix the kind of thing it was meant to ("read it first out loud" → "read a verse out
+  loud"; "catch my examiner" → "catch me as salmon"; "fine bunch" → "fine punch") and breaks the
+  same number of things ("the build is failing" → "the bill is failing"; "sounds good" → "that
+  sounds good"). The 4B model does not know enough to tell which words are wrong.
+- Verdict: keep it as an opt-in for formatting, not as an accuracy lever. The accuracy lever is
+  still silent data. A larger local model (Qwen3-8B/14B 4-bit) or a hosted one is the next
+  thing to try here, and a prompt that passes the activity-trimmed n-best scores.
