@@ -222,3 +222,38 @@ question is now how many sentences it takes.
 - Verdict: keep it as an opt-in for formatting, not as an accuracy lever. The accuracy lever is
   still silent data. A larger local model (Qwen3-8B/14B 4-bit) or a hosted one is the next
   thing to try here, and a prompt that passes the activity-trimmed n-best scores.
+
+### 2026-11-03 — Fourth fine-tune on a rented GPU: 141 silent takes, light vs full
+
+- 60 more silent takes (141 total: 113 train / 28 held-out). With the prompt shuffle, the new
+  held-out takes are 10 everyday + 2 Harvard; the 16 older ones are all Harvard, so the 28-sentence
+  held-out set is 10 everyday / 18 Harvard and every model below is scored on exactly that set.
+- Trained on a RunPod RTX 4090 ($0.89/h): 9.5 s per epoch vs 100–180 s on the M2. Light (lr 3e-4,
+  30 epochs) took 8.5 min; full (engine lr 2e-5, 30 epochs) 9.5 min, with one CUDA OOM warning
+  from the caching allocator that training survived.
+
+  | model                      | held-out all (28) | everyday (10) | Harvard (18) | exact |
+  |----------------------------|-------------------|---------------|--------------|-------|
+  | base                       | 64.7%             | 49.3%         | 72.9%        | 2/28  |
+  | 65 takes, light (Mac)      | 42.8%             | 24.0%         | 52.9%        | 3/28  |
+  | 113 takes, light (4090)    | **36.3%**         | **13.3%**     | 48.6%        | 6/28  |
+  | 113 takes, full (4090)     | 38.1%             |               |              |       |
+
+- **Headline:** on everyday sentences it has never seen, silent mouthing is read at 87% word
+  accuracy after 113 of my own takes, up from 51% for the public model. 5 of the 10 everyday
+  held-out sentences came back word-perfect ("please write down the main action items", "let's
+  start the meeting without him", "can you book a table for four people"). The remaining errors
+  are lip-confusions in the right slot ("first draft" → "first graph", "read lips" → "ring limbs").
+- Harvard sentences stay hard (48.6%): rare words, no everyday phrasing to lean on. That is the
+  honest ceiling of a 400M-parameter model plus 7 minutes of one person's video, not a reason to
+  stop.
+- Full fine-tuning did not beat light (38.1% vs 36.3%) at the engine's 2e-5. Unfreezing the whole
+  network was the hypothesis for "silent is a different dialect"; on this much data the front-end
+  adaptation already captures what there is to capture, and the rest is data. Full at a higher
+  learning rate is untested.
+- Logistics that cost more time than the training: my Wi-Fi uplink measured 43–65 KB/s and
+  SSH into the pod's exposed TCP port crawled at 5 KB/s (rsync and scp both). `runpodctl send` /
+  `receive` (RunPod's relay) moved the same files at 1.6 MB/s up and 7 MB/s down. The pod pulled
+  FLARE from Hugging Face at 48 MB/s, so weights should never leave the Mac. The pod's Python also
+  needs `pip --break-system-packages`. scripts/remote now reflects the first two; the relay is
+  the thing to switch to next.
