@@ -30,14 +30,13 @@ You hold **Space**, mouth a sentence, release. Mindreader:
 In the **Record** tab the same gesture saves labelled takes of a prompted sentence under one of three
 conditions, **silent / whisper / voiced** (subvox's protocol), plus the raw camera video. **Train**
 fine-tunes a personal model on those takes and keeps it only if it beats the base model on held-out
-sentences. **Evaluate** reports word error rate per condition against a chance baseline. **Dictate
-anywhere** launches a global-hotkey mode (hold `fn`, text is pasted at the cursor in any app).
+sentences. **Evaluate** reports word error rate per condition against a chance baseline.
 
 ## The engine
 
 All of the heavy lifting is [silent-dictation](https://github.com/KeWang0622/silent-dictation)
 (Apache-2.0), vendored as a git submodule in `third_party/silent-dictation`. It provides the camera
-pipeline, the FLARE port, the personal dataset format, the fine-tuner and the hotkey app. Mindreader
+pipeline, the FLARE port, the personal dataset format and the fine-tuner. Mindreader
 adds the experiment around it: conditions, raw-video retention, per-condition evaluation, a chance
 baseline, condition-filtered training, and a plain window to do it all in without the CLI.
 
@@ -75,7 +74,7 @@ scripts/mindreader doctor --camera-test   # models, permissions, camera
 scripts/mindreader                        # the window
 ```
 
-Other commands: `scripts/mindreader counts | train [--condition silent] | eval [--llm] | dictate`.
+Other commands: `scripts/mindreader counts | train [--condition silent] | eval [--llm]`.
 
 ## Protocol (the subvox analog)
 
@@ -85,7 +84,6 @@ Other commands: `scripts/mindreader counts | train [--condition silent] | eval [
 4. **Record the same 20 sentences voiced and whispered** so the conditions can be compared.
 5. **Evaluate**: WER per condition, base vs personal, against chance (hypotheses shuffled across
    sentences). Results land in `docs/results/` (ignored by git) and are summarised in `docs/learnings.md`.
-6. **Dictate anywhere** to try it as a tool.
 
 ## Training on a rented GPU
 

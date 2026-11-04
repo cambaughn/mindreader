@@ -193,10 +193,6 @@ class Main(QMainWindow):
         b = QPushButton("Open data folder")
         b.clicked.connect(lambda: subprocess.Popen(["open", str(engine.DATA)]))
         bottom.addWidget(b)
-        b = QPushButton("Dictate anywhere…")
-        b.setToolTip("Launches the engine's hotkey app with Mindreader's data (hold fn in any app).")
-        b.clicked.connect(self._dictate)
-        bottom.addWidget(b)
         self.resize(1100, 640)
 
     def _decode_tab(self) -> QWidget:
@@ -682,12 +678,7 @@ class Main(QMainWindow):
                                                log=self.sig.log.emit,
                                                on_progress=lambda f: self.sig.progress.emit("eval", f)))
 
-    # ------------------------------------------------------------------ dictate / close
-    def _dictate(self):
-        from ..__main__ import dictate_command, dictate_env
-        subprocess.Popen(dictate_command(), env=dictate_env(), cwd=str(engine.ENGINE))
-        self.sig.status.emit("Dictation app launched: hold fn in any app. Needs Input Monitoring + Accessibility.")
-
+    # ------------------------------------------------------------------ close
     def closeEvent(self, ev):
         if self.camera:
             self.camera.shutdown()

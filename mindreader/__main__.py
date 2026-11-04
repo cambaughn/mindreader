@@ -1,9 +1,7 @@
-"""python -m mindreader [app|doctor|train|eval|dictate|counts]"""
+"""python -m mindreader [app|doctor|train|eval|counts]"""
 from __future__ import annotations
 
 import argparse
-import os
-import subprocess
 import sys
 
 from . import __version__, engine
@@ -42,24 +40,6 @@ def cmd_counts(args):
     return 0
 
 
-def dictate_command() -> list[str]:
-    return [str(engine.ENGINE / ".venv" / "bin" / "python"), "-m", "silentdict.mac"]
-
-
-def dictate_env() -> dict:
-    env = dict(os.environ)
-    env["SILENTDICT_DATA"] = str(engine.DATA)
-    env["PYTHONPATH"] = str(engine.ENGINE) + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
-    return env
-
-
-def cmd_dictate(args):
-    """Phase 3, zero-code path: the engine's hotkey app (hold fn, mouth, release -> pasted at the cursor),
-    pointed at Mindreader's data so it uses the personal model trained here."""
-    print("Starting the dictation app with Mindreader's data folder. Hold fn to dictate into any app.")
-    print("Needs Camera, Input Monitoring and Accessibility permissions for the launching app (Terminal).")
-    return subprocess.call(dictate_command(), env=dictate_env(), cwd=str(engine.ENGINE))
-
 
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="mindreader", description=__doc__)
@@ -85,7 +65,6 @@ def main(argv=None) -> int:
     e.add_argument("--rewrite", action="store_true", help="also rewrite with the local language model (clean-up)")
     e.add_argument("--device", default="auto")
     sub.add_parser("counts", help="takes recorded per condition")
-    sub.add_parser("dictate", help="hotkey dictation into any app (the engine's app, using your personal model)")
     raw = list(sys.argv[1:] if argv is None else argv)
     if raw[:1] == ["doctor"]:  # pass the engine's own flags straight through
         return cmd_doctor(argparse.Namespace(rest=raw[1:])) or 0
@@ -94,7 +73,7 @@ def main(argv=None) -> int:
     if cmd == "app" and args.cmd is None:
         args.camera = "0"
     return {"app": cmd_app, "doctor": cmd_doctor, "train": cmd_train, "eval": cmd_eval,
-            "counts": cmd_counts, "dictate": cmd_dictate}[cmd](args) or 0
+            "counts": cmd_counts}[cmd](args) or 0
 
 
 if __name__ == "__main__":
