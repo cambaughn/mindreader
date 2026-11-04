@@ -91,9 +91,10 @@ Other commands: `scripts/mindreader counts | train [--condition silent] | eval [
 
 The M2 handles the light fine-tune (about 20 min per 20 takes) but runs hot, and the full
 fine-tune swaps on 24 GB. `scripts/remote/` moves training to a RunPod-style box with SSH over
-TCP: it copies the code, the FLARE weights (764 MB, once) and your dataset (tens of MB), installs
-the few Linux deps, trains, and brings `flare_personal.pth` back into the data folder, keeping a
-copy of the previous one.
+TCP: it copies the code and your dataset (a hundred MB or so), has the pod download and convert the
+FLARE weights itself (a home uplink can be 40 KB/s; the pod pulls at 50 MB/s), installs the few
+Linux deps, trains, and brings `flare_personal.pth` back into the data folder, keeping a copy of
+the previous one.
 
 ```bash
 scripts/remote/run.sh root@HOST PORT                      # silent takes, both strategies, 30 epochs
