@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QFrame, QHBox
                                QTabWidget, QVBoxLayout, QWidget, QLineEdit)
 
 PREVIEW_W = 480
+DECODE_HINT = "Hold Space, mouth a sentence, release."
 
 
 class Signals(QObject):
@@ -218,7 +219,7 @@ class Main(QMainWindow):
         cv = QVBoxLayout(card)
         cv.setContentsMargins(18, 16, 18, 14)
         cv.setSpacing(8)
-        self.decoded_text = QLabel("Hold Space, mouth a sentence, release.")
+        self.decoded_text = QLabel(DECODE_HINT)
         self.decoded_text.setProperty("role", "hero")
         self.decoded_text.setWordWrap(True)
         self.decoded_text.setMinimumHeight(84)
@@ -235,9 +236,15 @@ class Main(QMainWindow):
         self.nbest = QListWidget()
         self.nbest.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         v.addWidget(self.nbest, 1)
+        row = QHBoxLayout()
         b = QPushButton("Copy last result")
         b.clicked.connect(lambda: QApplication.clipboard().setText(self.history[-1] if self.history else ""))
-        v.addWidget(b)
+        row.addWidget(b, 1)
+        b = QPushButton("Clear")
+        b.setToolTip("Reset this tab to its starting state (Esc).")
+        b.clicked.connect(lambda: self._clear_decode())
+        row.addWidget(b)
+        v.addLayout(row)
         return w
 
     def _record_tab(self) -> QWidget:
@@ -483,6 +490,10 @@ class Main(QMainWindow):
             else:
                 self._space(False)
             return True
+        if ev.type() == QEvent.Type.KeyPress and ev.key() == Qt.Key.Key_Escape and self.isActiveWindow() \
+                and self.tabs.currentIndex() == 0 and not self.space_down:
+            self._clear_decode()
+            return True
         return super().eventFilter(obj, ev)
 
     def _space(self, down: bool):
@@ -495,6 +506,8 @@ class Main(QMainWindow):
             if self.session and not self.session.accepting():
                 return
             self.space_down = True
+            if self.tabs.currentIndex() == 0:
+                self._clear_decode("")  # the last take's text shouldn't sit there while the next is mouthed
             self.camera.start_segment()
         elif not down and self.space_down:
             self.space_down = False
@@ -530,6 +543,13 @@ class Main(QMainWindow):
             except Exception as exc:
                 self.sig.status.emit(f"Error: {exc}")
                 self.sig.log.emit(traceback.format_exc())
+
+    def _clear_decode(self, text: str = DECODE_HINT):
+        """Reset the Decode tab: the hint (or nothing, while capturing), no candidates, no timings."""
+        self.decoded_text.setText(text)
+        self.raw_label.setText("")
+        self.timing_label.setText("")
+        self.nbest.clear()
 
     def _show_decoded(self, res):
         if res.error:
